@@ -70,9 +70,12 @@ Scheitern beide: `rate.json` **nicht** anfassen, Warnung loggen, Exit-Code 1 (da
 
 ## `rate.json`
 
+Nachtrag: Zusätzlich `usdPerZar` (Visa mit `fromCurr=USD`, EZB-Fallback als Kreuzkurs USD/ZAR). Beide Werte stammen immer aus derselben Quelle. Die App hat einen €/$-Schalter „Kartenwährung“ (`localStorage` `home`); Hosting nur GitHub Pages.
+
 ```json
 {
   "eurPerZar": 0.0544131165,
+  "usdPerZar": 0.0611878408,
   "source": "visa",
   "asOf": "2026-10-20",
   "fetchedAt": "2026-10-21T06:00:12Z"

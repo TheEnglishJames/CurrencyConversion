@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Converter € to R</title>
+<title>Rand-Rechner</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-title" content="€ to R">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Rand-Rechner">
 <meta name="theme-color" content="#0b6e4f">
 <style>
 :root { --bg:#fff; --fg:#111; --muted:#666; --card:#f1f3f2; --accent:#0b6e4f; --warn:#b45309; color-scheme: light dark; }
@@ -22,6 +22,8 @@ main { flex:1; width:100%; max-width:34rem; margin:0 auto; padding:1.25rem 1rem;
 #cur { font-size:1.75rem; color:var(--muted); font-weight:700; }
 #swap { align-self:center; width:5rem; height:5rem; border-radius:50%; border:0; background:var(--accent); color:#fff; font-size:2.4rem; cursor:pointer; }
 #result { font-size:clamp(3rem, 15vw, 5rem); font-weight:700; text-align:center; word-break:break-word; background:var(--card); border-radius:1.25rem; padding:1.5rem 1rem; }
+#homerow { display:flex; justify-content:center; align-items:center; gap:.75rem; color:var(--muted); font-weight:600; }
+#home > * { padding:0; font-size:1.3rem; }
 #rateline { font-size:.95rem; color:var(--muted); text-align:center; }
 #warn { color:var(--warn); text-align:center; font-weight:600; }
 #warn:empty { display:none; }
@@ -77,6 +79,9 @@ td:last-child { border-radius:0 1rem 1rem 0; text-align:right; }
       <table><tbody id="tbody"></tbody></table>
     </section>
   </div>
+  <div id="homerow">Kartenwährung
+    <button id="home" class="pill" type="button" aria-label="Kartenwährung umschalten: Euro oder US-Dollar"><span id="h-EUR">€</span><span id="h-USD">$</span></button>
+  </div>
   <div id="rateline"></div>
   <div id="warn"></div>
 </main>
@@ -91,7 +96,7 @@ const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
 };
-let rate = null; // { eurPerZar, source, asOf }
+let rate = null; // { eurPerZar, usdPerZar, source, asOf }
 let offline = false;
 const root = document.documentElement;
 const isDark = () => (root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark';
@@ -107,30 +112,41 @@ $('theme').addEventListener('click', () => {
 });
 const savedTheme = store.get('theme');
 applyTheme(savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : null);
+// zarToEur: Richtung ZAR → Kartenwährung (EUR oder USD)
 let zarToEur = store.get('dir') !== 'eur2zar';
+let home = store.get('home') === 'USD' ? 'USD' : 'EUR';
+const SYM = { EUR: '€', USD: '$' };
+const perZar = () => Number(rate?.[home === 'USD' ? 'usdPerZar' : 'eurPerZar']) || 0;
+const from = () => (zarToEur ? 'ZAR' : home);
+const to = () => (zarToEur ? home : 'ZAR');
 
 const fmt = (n, currency) => new Intl.NumberFormat('de-DE', { style: 'currency', currency }).format(n);
 const fmtRate = (n, d) => new Intl.NumberFormat('de-DE', { maximumFractionDigits: d }).format(n);
 
+// Komma = Dezimaltrenner; Punkt vor genau 3 Ziffern = Tausender (1.000); bei beiden zählt das letzte Zeichen
 function parse(s) {
-  const t = s.trim().replace(',', '.');
+  let t = s.replace(/\s/g, '');
+  const c = t.lastIndexOf(','), d = t.lastIndexOf('.');
+  if (c >= 0 && d >= 0) t = c > d ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  else if (c >= 0) t = t.replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
   return /^(\d+\.?\d*|\.\d+)$/.test(t) ? parseFloat(t) : NaN;
 }
 function convert(v) {
-  return zarToEur ? v * rate.eurPerZar : v / rate.eurPerZar;
+  return zarToEur ? v * perZar() : v / perZar();
 }
 
 const AMOUNTS = {
   ZAR: [10, 20, 50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000],
   EUR: [5, 10, 20, 50, 100, 150, 200, 300, 500, 1000],
+  USD: [5, 10, 20, 50, 100, 150, 200, 300, 500, 1000],
 };
 function renderTable() {
-  const from = zarToEur ? 'ZAR' : 'EUR', to = zarToEur ? 'EUR' : 'ZAR';
-  $('th-from').textContent = from;
-  $('th-to').textContent = to;
-  const f0 = new Intl.NumberFormat('de-DE', { style: 'currency', currency: from, maximumFractionDigits: 0 });
-  $('tbody').innerHTML = AMOUNTS[from].map((a, i) =>
-    `<tr style="--i:${i}"><td>${f0.format(a)}</td><td>${rate ? fmt(convert(a), to) : '–'}</td></tr>`).join('');
+  $('th-from').textContent = from();
+  $('th-to').textContent = to();
+  const f0 = new Intl.NumberFormat('de-DE', { style: 'currency', currency: from(), maximumFractionDigits: 0 });
+  $('tbody').innerHTML = AMOUNTS[from()].map((a, i) =>
+    `<tr style="--i:${i}"><td>${f0.format(a)}</td><td>${perZar() ? fmt(convert(a), to()) : '–'}</td></tr>`).join('');
 }
 
 function showView(calc) {
@@ -144,20 +160,23 @@ $('tab-calc').addEventListener('click', () => showView(true));
 $('tab-table').addEventListener('click', () => showView(false));
 
 function render() {
-  $('cur').textContent = zarToEur ? 'ZAR' : 'EUR';
+  $('cur').textContent = from();
+  $('h-EUR').classList.toggle('on', home === 'EUR');
+  $('h-USD').classList.toggle('on', home === 'USD');
   renderTable();
-  if (!rate) {
+  if (!perZar()) {
     $('result').textContent = '–';
     $('rateline').textContent = '';
     $('warn').textContent = 'Noch kein Kurs geladen – einmal online öffnen';
     return;
   }
   const v = parse($('amount').value);
-  $('result').textContent = Number.isFinite(v) ? fmt(convert(v), zarToEur ? 'EUR' : 'ZAR') : '–';
+  $('result').textContent = Number.isFinite(v) ? fmt(convert(v), to()) : '–';
   const [y, m, d] = rate.asOf.split('-');
   const src = rate.source === 'ecb' ? 'EZB (Näherung, Visa nicht verfügbar)' : 'Visa';
+  const sym = SYM[home];
   $('rateline').textContent =
-    `1 ZAR = ${fmtRate(rate.eurPerZar, 4)} € · 1 € = ${fmtRate(1 / rate.eurPerZar, 2)} ZAR · ${src}, Stand ${d}.${m}.${y}`;
+    `1 ZAR = ${fmtRate(perZar(), 4)} ${sym} · 1 ${sym} = ${fmtRate(1 / perZar(), 2)} ZAR · ${src}, Stand ${d}.${m}.${y}`;
   const warn = [];
   if (Date.now() - new Date(rate.asOf + 'T00:00:00Z') > 3 * 86400000) warn.push('Kurs ist veraltet');
   if (offline) warn.push('Offline – letzter gespeicherter Kurs');
@@ -167,7 +186,7 @@ function render() {
 $('amount').addEventListener('input', render);
 function swapDirection() {
   const v = parse($('amount').value);
-  const next = rate && Number.isFinite(v) ? convert(v) : NaN;
+  const next = perZar() && Number.isFinite(v) ? convert(v) : NaN;
   zarToEur = !zarToEur;
   store.set('dir', zarToEur ? 'zar2eur' : 'eur2zar');
   $('amount').value = Number.isFinite(next) ? (Math.round(next * 100) / 100).toString().replace('.', ',') : '';
@@ -175,6 +194,11 @@ function swapDirection() {
 }
 $('swap').addEventListener('click', swapDirection);
 $('swap2').addEventListener('click', swapDirection);
+$('home').addEventListener('click', () => {
+  home = home === 'EUR' ? 'USD' : 'EUR';
+  store.set('home', home);
+  render();
+});
 
 async function loadRate() {
   try {

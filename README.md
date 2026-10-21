@@ -1,6 +1,6 @@
-# Converter € to R
+# Rand-Rechner
 
-Offline-fähige PWA: ZAR ⇄ EUR zum Visa-Kurs. Der Kurs wird zweimal täglich per GitHub Action nach `rate.json` geschrieben (Fallback: EZB).
+Offline-fähige PWA: ZAR ⇄ EUR oder ZAR ⇄ USD zum Visa-Kurs (Kartenwährung per €/$-Schalter wählbar, wird gemerkt). Der Kurs wird zweimal täglich per GitHub Action nach `rate.json` geschrieben (Fallback: EZB). Gehostet nur auf GitHub Pages; der Push der Action löst den Pages-Build automatisch aus.
 
 App-Adresse: https://theenglishjames.github.io/CurrencyConversion/
 
@@ -11,7 +11,7 @@ Einmal online öffnen, danach funktioniert die App auch ohne Netz.
 ### Android (Chrome)
 1. Die Adresse oben in **Chrome** öffnen.
 2. Menü **⋮** (oben rechts) → **App installieren** (oder „Zum Startbildschirm hinzufügen“).
-3. Mit **Installieren** bestätigen. Das Symbol „€ → R“ liegt jetzt auf dem Startbildschirm.
+3. Mit **Installieren** bestätigen. Die App „Rand-Rechner“ liegt jetzt auf dem Startbildschirm.
 
 ### iPhone / iPad (Safari)
 1. Die Adresse in **Safari** öffnen (andere Browser können das auf iOS meist nicht).
