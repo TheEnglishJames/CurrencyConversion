@@ -44,7 +44,11 @@ td:last-child { border-radius:0 1rem 1rem 0; text-align:right; }
 .view:not(.off) tr { animation:rowin .4s both; animation-delay:calc(var(--i) * 35ms); }
 @keyframes rowin { from { opacity:0; transform:translateY(.75rem); } }
 @media (prefers-reduced-motion: reduce) { .view, .view tr { transition:none; animation:none !important; } }
-footer { padding:1rem; text-align:center; font-size:.8rem; color:var(--muted); }
+#install { display:flex; align-items:center; gap:.75rem; margin:0 1rem 1rem; padding:1rem 1.25rem; border-radius:1rem; background:var(--card); font-size:1rem; line-height:1.4; max-width:34rem; align-self:center; }
+#install[hidden] { display:none; }
+#install span { flex:1; }
+#install button { border:0; border-radius:2rem; padding:.7rem 1.1rem; font:inherit; font-weight:600; cursor:pointer; background:var(--accent); color:#fff; }
+#install #inst-close { background:transparent; color:var(--muted); font-size:1.5rem; padding:.2rem .6rem; }
 </style>
 </head>
 <body>
@@ -73,7 +77,11 @@ footer { padding:1rem; text-align:center; font-size:.8rem; color:var(--muted); }
   <div id="rateline"></div>
   <div id="warn"></div>
 </main>
-<footer>Am Terminal immer in ZAR bezahlen, nicht in EUR.</footer>
+<div id="install" hidden>
+  <span id="inst-text"></span>
+  <button id="inst-go" type="button" hidden>Installieren</button>
+  <button id="inst-close" type="button" aria-label="Schließen">✕</button>
+</div>
 <script>
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -178,6 +186,37 @@ async function loadRate() {
   }
   render();
 }
+
+// Installationshinweis: bei den ersten 3 Starts, nicht wenn schon installiert, wegklickbar
+const starts = (parseInt(store.get('starts'), 10) || 0) + 1;
+store.set('starts', String(starts));
+const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+let installPrompt = null;
+function closeHint() { $('install').hidden = true; store.set('hintClosed', '1'); }
+if (starts <= 3 && !installed && !store.get('hintClosed')) {
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  $('inst-text').textContent = ios
+    ? 'App installieren: Teilen-Symbol → „Zum Home-Bildschirm“'
+    : /Android/.test(ua)
+      ? 'App installieren: Menü ⋮ → „App installieren“'
+      : 'App installieren: Symbol in der Adressleiste oder Menü → „Seite als App installieren“';
+  $('install').hidden = false;
+}
+$('inst-close').addEventListener('click', closeHint);
+addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  $('inst-go').hidden = false;
+});
+$('inst-go').addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null;
+  closeHint();
+});
+addEventListener('appinstalled', closeHint);
 
 addEventListener('online', loadRate);
 addEventListener('offline', () => { offline = true; render(); });
