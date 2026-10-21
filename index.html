@@ -9,7 +9,9 @@
 <meta name="theme-color" content="#0b6e4f">
 <style>
 :root { --bg:#fff; --fg:#111; --muted:#666; --card:#f1f3f2; --accent:#0b6e4f; --warn:#b45309; color-scheme: light dark; }
-@media (prefers-color-scheme: dark) { :root { --bg:#111; --fg:#f2f2f2; --muted:#9a9a9a; --card:#1d2220; --accent:#3ecf9b; --warn:#fbbf24; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#111; --fg:#f2f2f2; --muted:#9a9a9a; --card:#1d2220; --accent:#3ecf9b; --warn:#fbbf24; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg:#111; --fg:#f2f2f2; --muted:#9a9a9a; --card:#1d2220; --accent:#3ecf9b; --warn:#fbbf24; color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
 * { box-sizing: border-box; }
 body { margin:0; min-height:100dvh; background:var(--bg); color:var(--fg); font:16px system-ui, sans-serif; display:flex; flex-direction:column; }
 main { flex:1; width:100%; max-width:34rem; margin:0 auto; padding:1.25rem 1rem; display:flex; flex-direction:column; justify-content:center; gap:1.25rem; }
@@ -21,10 +23,12 @@ main { flex:1; width:100%; max-width:34rem; margin:0 auto; padding:1.25rem 1rem;
 #rateline { font-size:.95rem; color:var(--muted); text-align:center; }
 #warn { color:var(--warn); text-align:center; font-weight:600; }
 #warn:empty { display:none; }
+#theme { position:fixed; top:.75rem; right:.75rem; width:3.25rem; height:3.25rem; border-radius:50%; border:0; background:var(--card); color:var(--fg); font-size:1.5rem; cursor:pointer; }
 footer { padding:1rem; text-align:center; font-size:.8rem; color:var(--muted); }
 </style>
 </head>
 <body>
+<button id="theme" type="button" aria-label="Hell/Dunkel umschalten"></button>
 <main>
   <label class="row">
     <input id="amount" inputmode="decimal" autocomplete="off" autofocus aria-label="Betrag">
@@ -44,6 +48,19 @@ const store = {
 };
 let rate = null; // { eurPerZar, source, asOf }
 let offline = false;
+const root = document.documentElement;
+const isDark = () => (root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark';
+function applyTheme(t) {
+  if (t) root.dataset.theme = t;
+  $('theme').textContent = isDark() ? '☀️' : '🌙';
+}
+$('theme').addEventListener('click', () => {
+  const t = isDark() ? 'light' : 'dark';
+  store.set('theme', t);
+  applyTheme(t);
+});
+const savedTheme = store.get('theme');
+applyTheme(savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : null);
 let zarToEur = store.get('dir') !== 'eur2zar';
 
 const fmt = (n, currency) => new Intl.NumberFormat('de-DE', { style: 'currency', currency }).format(n);
