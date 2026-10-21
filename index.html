@@ -23,21 +23,51 @@ main { flex:1; width:100%; max-width:34rem; margin:0 auto; padding:1.25rem 1rem;
 #rateline { font-size:.95rem; color:var(--muted); text-align:center; }
 #warn { color:var(--warn); text-align:center; font-weight:600; }
 #warn:empty { display:none; }
-#theme { position:fixed; top:.75rem; right:.75rem; display:flex; gap:.25rem; padding:.3rem; border:0; border-radius:2rem; background:var(--card); cursor:pointer; }
-#theme span { width:3rem; height:3rem; display:grid; place-items:center; border-radius:50%; font-size:1.5rem; opacity:.45; }
-#theme span.on { background:var(--accent); opacity:1; }
+header { display:flex; justify-content:space-between; align-items:center; padding:.75rem; }
+.pill { display:flex; gap:.25rem; padding:.3rem; border:0; border-radius:2rem; background:var(--card); color:var(--fg); font:inherit; cursor:pointer; }
+.pill > * { min-width:3rem; height:3rem; padding:0 1rem; display:grid; place-items:center; border-radius:1.5rem; font-size:1.1rem; font-weight:600; opacity:.55; border:0; background:transparent; color:inherit; font-family:inherit; cursor:pointer; transition:background .25s, opacity .25s; }
+.pill > .on { background:var(--accent); color:#fff; opacity:1; }
+#theme > * { padding:0; font-size:1.5rem; }
+.views { display:grid; grid-template-columns:minmax(0,1fr); overflow-x:clip; }
+.view { grid-area:1/1; display:flex; flex-direction:column; gap:1.25rem; transition:opacity .3s, transform .3s, visibility .3s; }
+.view.off { opacity:0; visibility:hidden; pointer-events:none; max-height:0; overflow:hidden; transition:opacity .3s, transform .3s, visibility .3s, max-height 0s .3s; }
+#v-calc.off { transform:translateX(-2rem); }
+#v-table.off { transform:translateX(2rem); }
+#tbl-head { display:flex; justify-content:space-between; align-items:center; font-size:1.25rem; font-weight:700; color:var(--muted); padding:0 .5rem; }
+#tbl-head button { width:3.5rem; height:3.5rem; border-radius:50%; border:0; background:var(--accent); color:#fff; font-size:1.6rem; cursor:pointer; }
+table { width:100%; border-collapse:separate; border-spacing:0 .5rem; }
+td { background:var(--card); padding:.9rem 1.25rem; font-size:1.6rem; font-weight:600; font-variant-numeric:tabular-nums; }
+td:first-child { border-radius:1rem 0 0 1rem; color:var(--muted); }
+td:last-child { border-radius:0 1rem 1rem 0; text-align:right; }
+.view:not(.off) tr { animation:rowin .4s both; animation-delay:calc(var(--i) * 35ms); }
+@keyframes rowin { from { opacity:0; transform:translateY(.75rem); } }
+@media (prefers-reduced-motion: reduce) { .view, .view tr { transition:none; animation:none !important; } }
 footer { padding:1rem; text-align:center; font-size:.8rem; color:var(--muted); }
 </style>
 </head>
 <body>
-<button id="theme" type="button" aria-label="Tag/Nacht umschalten"><span id="t-light">☀️</span><span id="t-dark">🌙</span></button>
+<header>
+  <div class="pill" role="tablist">
+    <button id="tab-calc" class="on" type="button" role="tab">Rechner</button>
+    <button id="tab-table" type="button" role="tab">Tabelle</button>
+  </div>
+  <button id="theme" class="pill" type="button" aria-label="Tag/Nacht umschalten"><span id="t-light">☀️</span><span id="t-dark">🌙</span></button>
+</header>
 <main>
-  <label class="row">
-    <input id="amount" inputmode="decimal" autocomplete="off" autofocus aria-label="Betrag">
-    <span id="cur">ZAR</span>
-  </label>
-  <button id="swap" type="button" aria-label="Richtung wechseln">⇅</button>
-  <div id="result" aria-live="polite">–</div>
+  <div class="views">
+    <section id="v-calc" class="view">
+      <label class="row">
+        <input id="amount" inputmode="decimal" autocomplete="off" autofocus aria-label="Betrag">
+        <span id="cur">ZAR</span>
+      </label>
+      <button id="swap" type="button" aria-label="Richtung wechseln">⇅</button>
+      <div id="result" aria-live="polite">–</div>
+    </section>
+    <section id="v-table" class="view off">
+      <div id="tbl-head"><span id="th-from">ZAR</span><button id="swap2" type="button" aria-label="Richtung wechseln">⇅</button><span id="th-to">EUR</span></div>
+      <table><tbody id="tbody"></tbody></table>
+    </section>
+  </div>
   <div id="rateline"></div>
   <div id="warn"></div>
 </main>
@@ -77,8 +107,32 @@ function convert(v) {
   return zarToEur ? v * rate.eurPerZar : v / rate.eurPerZar;
 }
 
+const AMOUNTS = {
+  ZAR: [10, 20, 50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000],
+  EUR: [5, 10, 20, 50, 100, 150, 200, 300, 500, 1000],
+};
+function renderTable() {
+  const from = zarToEur ? 'ZAR' : 'EUR', to = zarToEur ? 'EUR' : 'ZAR';
+  $('th-from').textContent = from;
+  $('th-to').textContent = to;
+  const f0 = new Intl.NumberFormat('de-DE', { style: 'currency', currency: from, maximumFractionDigits: 0 });
+  $('tbody').innerHTML = AMOUNTS[from].map((a, i) =>
+    `<tr style="--i:${i}"><td>${f0.format(a)}</td><td>${rate ? fmt(convert(a), to) : '–'}</td></tr>`).join('');
+}
+
+function showView(calc) {
+  $('v-calc').classList.toggle('off', !calc);
+  $('v-table').classList.toggle('off', calc);
+  $('tab-calc').classList.toggle('on', calc);
+  $('tab-table').classList.toggle('on', !calc);
+  if (calc) $('amount').focus();
+}
+$('tab-calc').addEventListener('click', () => showView(true));
+$('tab-table').addEventListener('click', () => showView(false));
+
 function render() {
   $('cur').textContent = zarToEur ? 'ZAR' : 'EUR';
+  renderTable();
   if (!rate) {
     $('result').textContent = '–';
     $('rateline').textContent = '';
@@ -98,14 +152,16 @@ function render() {
 }
 
 $('amount').addEventListener('input', render);
-$('swap').addEventListener('click', () => {
+function swapDirection() {
   const v = parse($('amount').value);
   const next = rate && Number.isFinite(v) ? convert(v) : NaN;
   zarToEur = !zarToEur;
   store.set('dir', zarToEur ? 'zar2eur' : 'eur2zar');
   $('amount').value = Number.isFinite(next) ? (Math.round(next * 100) / 100).toString().replace('.', ',') : '';
   render();
-});
+}
+$('swap').addEventListener('click', swapDirection);
+$('swap2').addEventListener('click', swapDirection);
 
 async function loadRate() {
   try {
