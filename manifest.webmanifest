@@ -1,6 +1,6 @@
 {
-  "name": "Rand ⇄ Euro",
-  "short_name": "ZAR⇄EUR",
+  "name": "Converter € to R",
+  "short_name": "€ to R",
   "lang": "de",
   "start_url": "./",
   "scope": "./",
