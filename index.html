@@ -23,12 +23,14 @@ main { flex:1; width:100%; max-width:34rem; margin:0 auto; padding:1.25rem 1rem;
 #rateline { font-size:.95rem; color:var(--muted); text-align:center; }
 #warn { color:var(--warn); text-align:center; font-weight:600; }
 #warn:empty { display:none; }
-#theme { position:fixed; top:.75rem; right:.75rem; width:3.25rem; height:3.25rem; border-radius:50%; border:0; background:var(--card); color:var(--fg); font-size:1.5rem; cursor:pointer; }
+#theme { position:fixed; top:.75rem; right:.75rem; display:flex; gap:.25rem; padding:.3rem; border:0; border-radius:2rem; background:var(--card); cursor:pointer; }
+#theme span { width:3rem; height:3rem; display:grid; place-items:center; border-radius:50%; font-size:1.5rem; opacity:.45; }
+#theme span.on { background:var(--accent); opacity:1; }
 footer { padding:1rem; text-align:center; font-size:.8rem; color:var(--muted); }
 </style>
 </head>
 <body>
-<button id="theme" type="button" aria-label="Hell/Dunkel umschalten"></button>
+<button id="theme" type="button" aria-label="Tag/Nacht umschalten"><span id="t-light">☀️</span><span id="t-dark">🌙</span></button>
 <main>
   <label class="row">
     <input id="amount" inputmode="decimal" autocomplete="off" autofocus aria-label="Betrag">
@@ -52,7 +54,8 @@ const root = document.documentElement;
 const isDark = () => (root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark';
 function applyTheme(t) {
   if (t) root.dataset.theme = t;
-  $('theme').textContent = isDark() ? '☀️' : '🌙';
+  $('t-light').classList.toggle('on', !isDark());
+  $('t-dark').classList.toggle('on', isDark());
 }
 $('theme').addEventListener('click', () => {
   const t = isDark() ? 'light' : 'dark';

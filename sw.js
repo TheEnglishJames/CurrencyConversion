@@ -1,4 +1,4 @@
-const CACHE = 'zar-eur-v4';
+const CACHE = 'zar-eur-v5';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -18,7 +18,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
-  if (url.pathname.endsWith('/rate.json')) {
+  if (req.mode === 'navigate' || url.pathname.endsWith('/rate.json')) {
     e.respondWith(
       fetch(req, { cache: 'no-store' })
         .then((res) => {
