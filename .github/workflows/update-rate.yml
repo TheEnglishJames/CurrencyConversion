@@ -16,6 +16,7 @@ jobs:
           node-version: 20
       - run: node scripts/fetch-rate.mjs
       - name: Commit
+        id: commit
         run: |
           if ! git diff --quiet rate.json; then
             git config user.name "github-actions[bot]"
@@ -23,4 +24,12 @@ jobs:
             git add rate.json
             git commit -m "Update rate"
             git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Deploy to Firebase Hosting
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" npx --yes firebase-tools@13 deploy --only hosting

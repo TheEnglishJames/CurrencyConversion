@@ -12,13 +12,13 @@
 @media (prefers-color-scheme: dark) { :root { --bg:#111; --fg:#f2f2f2; --muted:#9a9a9a; --card:#1d2220; --accent:#3ecf9b; --warn:#fbbf24; } }
 * { box-sizing: border-box; }
 body { margin:0; min-height:100dvh; background:var(--bg); color:var(--fg); font:16px system-ui, sans-serif; display:flex; flex-direction:column; }
-main { flex:1; width:100%; max-width:30rem; margin:0 auto; padding:1.5rem 1rem; display:flex; flex-direction:column; gap:1rem; }
-.row { display:flex; align-items:center; gap:.75rem; background:var(--card); border-radius:1rem; padding:.75rem 1rem; }
-#amount { flex:1; min-width:0; border:0; background:transparent; color:inherit; font:inherit; font-size:2.25rem; font-weight:600; outline:none; }
-#cur { font-size:1.25rem; color:var(--muted); font-weight:600; }
-#swap { align-self:center; width:3.5rem; height:3.5rem; border-radius:50%; border:0; background:var(--accent); color:#fff; font-size:1.6rem; cursor:pointer; }
-#result { font-size:clamp(2.5rem, 13vw, 4rem); font-weight:700; text-align:center; word-break:break-word; padding:.5rem 0; }
-#rateline { font-size:.85rem; color:var(--muted); text-align:center; }
+main { flex:1; width:100%; max-width:34rem; margin:0 auto; padding:1.25rem 1rem; display:flex; flex-direction:column; justify-content:center; gap:1.25rem; }
+.row { display:flex; align-items:center; gap:.75rem; background:var(--card); border-radius:1.25rem; padding:1.25rem 1.5rem; min-height:7rem; }
+#amount { flex:1; min-width:0; border:0; background:transparent; color:inherit; font:inherit; font-size:3.25rem; font-weight:600; outline:none; }
+#cur { font-size:1.75rem; color:var(--muted); font-weight:700; }
+#swap { align-self:center; width:5rem; height:5rem; border-radius:50%; border:0; background:var(--accent); color:#fff; font-size:2.4rem; cursor:pointer; }
+#result { font-size:clamp(3rem, 15vw, 5rem); font-weight:700; text-align:center; word-break:break-word; background:var(--card); border-radius:1.25rem; padding:1.5rem 1rem; }
+#rateline { font-size:.95rem; color:var(--muted); text-align:center; }
 #warn { color:var(--warn); text-align:center; font-weight:600; }
 #warn:empty { display:none; }
 footer { padding:1rem; text-align:center; font-size:.8rem; color:var(--muted); }
