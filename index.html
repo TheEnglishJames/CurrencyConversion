@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rand ⇄ Euro</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0b6e4f">
+<style>
+:root { --bg:#fff; --fg:#111; --muted:#666; --card:#f1f3f2; --accent:#0b6e4f; --warn:#b45309; color-scheme: light dark; }
+@media (prefers-color-scheme: dark) { :root { --bg:#111; --fg:#f2f2f2; --muted:#9a9a9a; --card:#1d2220; --accent:#3ecf9b; --warn:#fbbf24; } }
+* { box-sizing: border-box; }
+body { margin:0; min-height:100dvh; background:var(--bg); color:var(--fg); font:16px system-ui, sans-serif; display:flex; flex-direction:column; }
+main { flex:1; width:100%; max-width:30rem; margin:0 auto; padding:1.5rem 1rem; display:flex; flex-direction:column; gap:1rem; }
+.row { display:flex; align-items:center; gap:.75rem; background:var(--card); border-radius:1rem; padding:.75rem 1rem; }
+#amount { flex:1; min-width:0; border:0; background:transparent; color:inherit; font:inherit; font-size:2.25rem; font-weight:600; outline:none; }
+#cur { font-size:1.25rem; color:var(--muted); font-weight:600; }
+#swap { align-self:center; width:3.5rem; height:3.5rem; border-radius:50%; border:0; background:var(--accent); color:#fff; font-size:1.6rem; cursor:pointer; }
+#result { font-size:clamp(2.5rem, 13vw, 4rem); font-weight:700; text-align:center; word-break:break-word; padding:.5rem 0; }
+#rateline { font-size:.85rem; color:var(--muted); text-align:center; }
+#warn { color:var(--warn); text-align:center; font-weight:600; }
+#warn:empty { display:none; }
+footer { padding:1rem; text-align:center; font-size:.8rem; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <label class="row">
+    <input id="amount" inputmode="decimal" autocomplete="off" autofocus aria-label="Betrag">
+    <span id="cur">ZAR</span>
+  </label>
+  <button id="swap" type="button" aria-label="Richtung wechseln">⇅</button>
+  <div id="result" aria-live="polite">–</div>
+  <div id="rateline"></div>
+  <div id="warn"></div>
+</main>
+<footer>Am Terminal immer in ZAR bezahlen, nicht in EUR.</footer>
+<script>
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+let rate = null; // { eurPerZar, source, asOf }
+let offline = false;
+let zarToEur = store.get('dir') !== 'eur2zar';
+
+const fmt = (n, currency) => new Intl.NumberFormat('de-DE', { style: 'currency', currency }).format(n);
+const fmtRate = (n, d) => new Intl.NumberFormat('de-DE', { maximumFractionDigits: d }).format(n);
+
+function parse(s) {
+  const t = s.trim().replace(',', '.');
+  return /^(\d+\.?\d*|\.\d+)$/.test(t) ? parseFloat(t) : NaN;
+}
+function convert(v) {
+  return zarToEur ? v * rate.eurPerZar : v / rate.eurPerZar;
+}
+
+function render() {
+  $('cur').textContent = zarToEur ? 'ZAR' : 'EUR';
+  if (!rate) {
+    $('result').textContent = '–';
+    $('rateline').textContent = '';
+    $('warn').textContent = 'Noch kein Kurs geladen – einmal online öffnen';
+    return;
+  }
+  const v = parse($('amount').value);
+  $('result').textContent = Number.isFinite(v) ? fmt(convert(v), zarToEur ? 'EUR' : 'ZAR') : '–';
+  const [y, m, d] = rate.asOf.split('-');
+  const src = rate.source === 'ecb' ? 'EZB (Näherung, Visa nicht verfügbar)' : 'Visa';
+  $('rateline').textContent =
+    `1 ZAR = ${fmtRate(rate.eurPerZar, 4)} € · 1 € = ${fmtRate(1 / rate.eurPerZar, 2)} ZAR · ${src}, Stand ${d}.${m}.${y}`;
+  const warn = [];
+  if (Date.now() - new Date(rate.asOf + 'T00:00:00Z') > 3 * 86400000) warn.push('Kurs ist veraltet');
+  if (offline) warn.push('Offline – letzter gespeicherter Kurs');
+  $('warn').textContent = warn.join(' · ');
+}
+
+$('amount').addEventListener('input', render);
+$('swap').addEventListener('click', () => {
+  const v = parse($('amount').value);
+  const next = rate && Number.isFinite(v) ? convert(v) : NaN;
+  zarToEur = !zarToEur;
+  store.set('dir', zarToEur ? 'zar2eur' : 'eur2zar');
+  $('amount').value = Number.isFinite(next) ? (Math.round(next * 100) / 100).toString().replace('.', ',') : '';
+  render();
+});
+
+async function loadRate() {
+  try {
+    const r = await fetch('rate.json', { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    rate = await r.json();
+    store.set('rate', JSON.stringify(rate));
+    offline = false;
+  } catch {
+    try { rate = JSON.parse(store.get('rate')); } catch { rate = null; }
+    offline = true;
+  }
+  render();
+}
+
+addEventListener('online', loadRate);
+addEventListener('offline', () => { offline = true; render(); });
+render();
+loadRate();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
