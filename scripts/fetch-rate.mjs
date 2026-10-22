@@ -1,64 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-
-const run = promisify(execFile);
 
 const RATE_FILE = new URL('../rate.json', import.meta.url);
-// Gleiche API auf mehreren Länderdomains; GitHub-Runner werden auf einzelnen Hosts mit 403 geblockt
-const VISA_HOSTS = ['www.visa.co.uk', 'usa.visa.com', 'www.visa.de', 'www.visa.co.za', 'www.visa.ca'];
 const ECB_URL = 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml';
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
 // EUR und USD pro ZAR liegen beide um 0,05–0,07
 const plausible = (r) => Number.isFinite(r) && r > 0.02 && r < 0.15;
-const isoDay = (d) => d.toISOString().slice(0, 10);
-
-// Kartenwährung `card` (EUR/USD), Zahlung in ZAR → fxRateVisa = card pro 1 ZAR
-async function visaOn(date, card) {
-  const mdy = encodeURIComponent(
-    `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${date.getUTCFullYear()}`,
-  );
-  // Visa antwortet auf Nodes fetch mit 403 (TLS-Fingerprint); curl wird durchgelassen.
-  let stdout, lastErr;
-  for (const host of VISA_HOSTS) {
-    const url = `https://${host}/cmsapi/fx/rates?amount=1&fee=0&utcConvertedDate=${mdy}&exchangedate=${mdy}&fromCurr=${card}&toCurr=ZAR`;
-    try {
-      ({ stdout } = await run(
-        'curl',
-        ['-sS', '--fail', '--max-time', '20', '-A', UA, '-H', 'Accept: application/json', url],
-        { timeout: 25000 },
-      ));
-      break;
-    } catch (e) {
-      lastErr = new Error(`${host}: ${e.stderr?.trim() || e.message}`);
-      console.warn(`Visa ${card} über ${host} fehlgeschlagen: ${lastErr.message}`);
-    }
-  }
-  if (stdout === undefined) throw lastErr;
-  const body = JSON.parse(stdout);
-  const v = body?.originalValues;
-  const rate = Number(v?.fxRateVisa);
-  if (body?.status !== 'success' || !(rate > 0)) throw new Error(`Visa ${card}: keine gültige Antwort`);
-  if (!plausible(rate)) throw new Error(`Visa ${card}: Kurs unplausibel (${rate})`);
-  return { rate, asOf: isoDay(new Date(v.asOfDate * 1000)) };
-}
-
-async function visaFor(card) {
-  const today = new Date();
-  try {
-    return await visaOn(today, card);
-  } catch (e) {
-    console.warn(`Visa ${card} (heute) fehlgeschlagen: ${e.message}; versuche gestern`);
-    return await visaOn(new Date(today.getTime() - 86400000), card);
-  }
-}
-
-// Beide Kurse aus derselben Quelle, damit Quelle und Stand für beide stimmen
-async function visa() {
-  const [eur, usd] = await Promise.all([visaFor('EUR'), visaFor('USD')]);
-  return { eurPerZar: eur.rate, usdPerZar: usd.rate, source: 'visa', asOf: eur.asOf };
-}
 
 async function ecb() {
   const res = await fetch(ECB_URL, { signal: AbortSignal.timeout(20000) });
@@ -78,17 +24,13 @@ async function ecb() {
   return { eurPerZar, usdPerZar, source: 'ecb', asOf };
 }
 
+// Visa blockt die GitHub-Runner (403 auf allen Hosts), daher nur der EZB-Referenzkurs
 let result;
 try {
-  result = await visa();
+  result = await ecb();
 } catch (e) {
-  console.warn(`Visa fehlgeschlagen: ${e.message}; Fallback EZB`);
-  try {
-    result = await ecb();
-  } catch (e2) {
-    console.warn(`WARNUNG: Auch EZB fehlgeschlagen: ${e2.message}. rate.json bleibt unverändert.`);
-    process.exit(1);
-  }
+  console.warn(`WARNUNG: EZB fehlgeschlagen: ${e.message}. rate.json bleibt unverändert.`);
+  process.exit(1);
 }
 
 let old = {};

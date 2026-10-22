@@ -88,7 +88,7 @@ td:last-child { border-radius:0 1rem 1rem 0; text-align:right; }
     <button id="home" class="pill" type="button" aria-label="Switch card currency: euro or US dollar"><span id="h-EUR">€</span><span id="h-USD">$</span></button>
   </div>
   <div id="rateline"></div>
-  <div id="note">The rate only changes when Visa publishes a new one.</div>
+  <div id="note">The rate is the ECB reference rate and only changes when the ECB publishes a new one (once per working day, around 16:00 CET).</div>
   <div id="warn"></div>
 </main>
 <div id="install" hidden>
@@ -179,7 +179,7 @@ function render() {
   const v = parse($('amount').value);
   $('result').textContent = Number.isFinite(v) ? fmt(convert(v), to()) : '–';
   const [y, m, d] = rate.asOf.split('-');
-  const src = rate.source === 'ecb' ? 'ECB (approximation, Visa unavailable)' : 'Visa';
+  const src = rate.source === 'visa' ? 'Visa' : 'ECB';
   const sym = SYM[home];
   $('rateline').textContent =
     `1 ZAR = ${fmtRate(perZar(), 4)} ${sym} · 1 ${sym} = ${fmtRate(1 / perZar(), 2)} ZAR · ${src}, as of ${d}/${m}/${y}`;
