@@ -1,7 +1,7 @@
 {
-  "eurPerZar": 0.0544131165,
-  "usdPerZar": 0.0611878408,
-  "source": "visa",
+  "eurPerZar": 0.0543685097591475,
+  "usdPerZar": 0.0610775838634263,
+  "source": "ecb",
   "asOf": "2026-10-21",
-  "fetchedAt": "2026-10-21T18:41:55Z"
+  "fetchedAt": "2026-10-22T06:49:29Z"
 }
