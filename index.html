@@ -34,6 +34,9 @@ header { display:flex; flex-wrap:wrap; justify-content:space-between; align-item
 .pill { display:flex; gap:.25rem; padding:.3rem; border:0; border-radius:2rem; background:var(--card); color:var(--fg); font:inherit; cursor:pointer; }
 .pill > * { min-width:3rem; height:3rem; padding:0 1rem; display:grid; place-items:center; border-radius:1.5rem; font-size:1.1rem; font-weight:600; opacity:.55; border:0; background:transparent; color:inherit; font-family:inherit; cursor:pointer; transition:background .25s, opacity .25s; }
 .pill > .on { background:var(--accent); color:#fff; opacity:1; }
+#refresh > * { padding:0; font-size:1.5rem; }
+#refresh.busy > * { animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
 #theme > * { padding:0; font-size:1.5rem; }
 .views { display:grid; grid-template-columns:minmax(0,1fr); overflow-x:clip; }
 .view { grid-area:1/1; display:flex; flex-direction:column; gap:1.25rem; transition:opacity .3s, transform .3s, visibility .3s; }
@@ -63,6 +66,7 @@ td:last-child { border-radius:0 1rem 1rem 0; text-align:right; }
     <button id="tab-table" type="button" role="tab">Table</button>
   </div>
   <button id="inst-top" class="pill" type="button" aria-label="Install app" hidden><span>⤓ Install</span></button>
+  <button id="refresh" class="pill" type="button" aria-label="Reload app and check for new rates"><span>⟳</span></button>
   <button id="theme" class="pill" type="button" aria-label="Toggle light/dark mode"><span id="t-light">☀️</span><span id="t-dark">🌙</span></button>
 </header>
 <main>
@@ -258,6 +262,13 @@ addEventListener('beforeinstallprompt', (e) => {
   syncInstall();
 });
 addEventListener('appinstalled', () => { installed = true; syncInstall(); });
+
+// Neu laden: Service-Worker-Update anstoßen, dann Seite neu laden (Start und rate.json sind network-first)
+$('refresh').addEventListener('click', async () => {
+  $('refresh').classList.add('busy');
+  try { await (await navigator.serviceWorker?.getRegistration())?.update(); } catch {}
+  location.reload();
+});
 
 addEventListener('online', loadRate);
 addEventListener('offline', () => { offline = true; render(); });
