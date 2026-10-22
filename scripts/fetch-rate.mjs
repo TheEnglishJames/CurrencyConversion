@@ -5,7 +5,8 @@ import { promisify } from 'node:util';
 const run = promisify(execFile);
 
 const RATE_FILE = new URL('../rate.json', import.meta.url);
-const VISA_BASE = 'https://www.visa.co.uk/cmsapi/fx/rates';
+// Gleiche API auf mehreren Länderdomains; GitHub-Runner werden auf einzelnen Hosts mit 403 geblockt
+const VISA_HOSTS = ['www.visa.co.uk', 'usa.visa.com', 'www.visa.de', 'www.visa.co.za', 'www.visa.ca'];
 const ECB_URL = 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
@@ -18,13 +19,23 @@ async function visaOn(date, card) {
   const mdy = encodeURIComponent(
     `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${date.getUTCFullYear()}`,
   );
-  const url = `${VISA_BASE}?amount=1&fee=0&utcConvertedDate=${mdy}&exchangedate=${mdy}&fromCurr=${card}&toCurr=ZAR`;
   // Visa antwortet auf Nodes fetch mit 403 (TLS-Fingerprint); curl wird durchgelassen.
-  const { stdout } = await run(
-    'curl',
-    ['-sS', '--fail', '--max-time', '20', '-A', UA, '-H', 'Accept: application/json', url],
-    { timeout: 25000 },
-  );
+  let stdout, lastErr;
+  for (const host of VISA_HOSTS) {
+    const url = `https://${host}/cmsapi/fx/rates?amount=1&fee=0&utcConvertedDate=${mdy}&exchangedate=${mdy}&fromCurr=${card}&toCurr=ZAR`;
+    try {
+      ({ stdout } = await run(
+        'curl',
+        ['-sS', '--fail', '--max-time', '20', '-A', UA, '-H', 'Accept: application/json', url],
+        { timeout: 25000 },
+      ));
+      break;
+    } catch (e) {
+      lastErr = new Error(`${host}: ${e.stderr?.trim() || e.message}`);
+      console.warn(`Visa ${card} über ${host} fehlgeschlagen: ${lastErr.message}`);
+    }
+  }
+  if (stdout === undefined) throw lastErr;
   const body = JSON.parse(stdout);
   const v = body?.originalValues;
   const rate = Number(v?.fxRateVisa);
