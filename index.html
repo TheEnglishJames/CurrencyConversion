@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rand-Rechner</title>
+<title>Rand Calculator</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="apple-mobile-web-app-title" content="Rand-Rechner">
+<meta name="apple-mobile-web-app-title" content="Rand Calculator">
 <meta name="theme-color" content="#0b6e4f">
 <style>
 :root { --bg:#fff; --fg:#111; --muted:#666; --card:#f1f3f2; --accent:#0b6e4f; --warn:#b45309; color-scheme: light dark; }
@@ -25,6 +25,7 @@ main { flex:1; width:100%; max-width:34rem; margin:0 auto; padding:1.25rem 1rem;
 #homerow { display:flex; justify-content:center; align-items:center; gap:.75rem; color:var(--muted); font-weight:600; }
 #home > * { padding:0; font-size:1.3rem; }
 #rateline { font-size:.95rem; color:var(--muted); text-align:center; }
+#note { font-size:.85rem; color:var(--muted); text-align:center; }
 #warn { color:var(--warn); text-align:center; font-weight:600; }
 #warn:empty { display:none; }
 header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:.5rem; padding:.75rem; }
@@ -58,37 +59,38 @@ td:last-child { border-radius:0 1rem 1rem 0; text-align:right; }
 <body>
 <header>
   <div class="pill" role="tablist">
-    <button id="tab-calc" class="on" type="button" role="tab">Rechner</button>
-    <button id="tab-table" type="button" role="tab">Tabelle</button>
+    <button id="tab-calc" class="on" type="button" role="tab">Calculator</button>
+    <button id="tab-table" type="button" role="tab">Table</button>
   </div>
-  <button id="inst-top" class="pill" type="button" aria-label="App installieren" hidden><span>⤓ Installieren</span></button>
-  <button id="theme" class="pill" type="button" aria-label="Tag/Nacht umschalten"><span id="t-light">☀️</span><span id="t-dark">🌙</span></button>
+  <button id="inst-top" class="pill" type="button" aria-label="Install app" hidden><span>⤓ Install</span></button>
+  <button id="theme" class="pill" type="button" aria-label="Toggle light/dark mode"><span id="t-light">☀️</span><span id="t-dark">🌙</span></button>
 </header>
 <main>
   <div class="views">
     <section id="v-calc" class="view">
       <label class="row">
-        <input id="amount" inputmode="decimal" autocomplete="off" autofocus aria-label="Betrag">
+        <input id="amount" inputmode="decimal" autocomplete="off" autofocus aria-label="Amount">
         <span id="cur">ZAR</span>
       </label>
-      <button id="swap" type="button" aria-label="Richtung wechseln">⇅</button>
+      <button id="swap" type="button" aria-label="Switch direction">⇅</button>
       <div id="result" aria-live="polite">–</div>
     </section>
     <section id="v-table" class="view off">
-      <div id="tbl-head"><span id="th-from">ZAR</span><button id="swap2" type="button" aria-label="Richtung wechseln">⇅</button><span id="th-to">EUR</span></div>
+      <div id="tbl-head"><span id="th-from">ZAR</span><button id="swap2" type="button" aria-label="Switch direction">⇅</button><span id="th-to">EUR</span></div>
       <table><tbody id="tbody"></tbody></table>
     </section>
   </div>
-  <div id="homerow">Kartenwährung
-    <button id="home" class="pill" type="button" aria-label="Kartenwährung umschalten: Euro oder US-Dollar"><span id="h-EUR">€</span><span id="h-USD">$</span></button>
+  <div id="homerow">Card currency
+    <button id="home" class="pill" type="button" aria-label="Switch card currency: euro or US dollar"><span id="h-EUR">€</span><span id="h-USD">$</span></button>
   </div>
   <div id="rateline"></div>
+  <div id="note">The rate only changes when Visa publishes a new one.</div>
   <div id="warn"></div>
 </main>
 <div id="install" hidden>
   <span id="inst-text"></span>
-  <button id="inst-go" type="button" hidden>Installieren</button>
-  <button id="inst-close" type="button" aria-label="Schließen">✕</button>
+  <button id="inst-go" type="button" hidden>Install</button>
+  <button id="inst-close" type="button" aria-label="Close">✕</button>
 </div>
 <script>
 const $ = (id) => document.getElementById(id);
@@ -120,8 +122,8 @@ const perZar = () => Number(rate?.[home === 'USD' ? 'usdPerZar' : 'eurPerZar']) 
 const from = () => (zarToEur ? 'ZAR' : home);
 const to = () => (zarToEur ? home : 'ZAR');
 
-const fmt = (n, currency) => new Intl.NumberFormat('de-DE', { style: 'currency', currency }).format(n);
-const fmtRate = (n, d) => new Intl.NumberFormat('de-DE', { maximumFractionDigits: d }).format(n);
+const fmt = (n, currency) => new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(n);
+const fmtRate = (n, d) => new Intl.NumberFormat('en-GB', { maximumFractionDigits: d }).format(n);
 
 // Komma = Dezimaltrenner; Punkt vor genau 3 Ziffern = Tausender (1.000); bei beiden zählt das letzte Zeichen
 function parse(s) {
@@ -144,7 +146,7 @@ const AMOUNTS = {
 function renderTable() {
   $('th-from').textContent = from();
   $('th-to').textContent = to();
-  const f0 = new Intl.NumberFormat('de-DE', { style: 'currency', currency: from(), maximumFractionDigits: 0 });
+  const f0 = new Intl.NumberFormat('en-GB', { style: 'currency', currency: from(), maximumFractionDigits: 0 });
   $('tbody').innerHTML = AMOUNTS[from()].map((a, i) =>
     `<tr style="--i:${i}"><td>${f0.format(a)}</td><td>${perZar() ? fmt(convert(a), to()) : '–'}</td></tr>`).join('');
 }
@@ -167,19 +169,19 @@ function render() {
   if (!perZar()) {
     $('result').textContent = '–';
     $('rateline').textContent = '';
-    $('warn').textContent = 'Noch kein Kurs geladen – einmal online öffnen';
+    $('warn').textContent = 'No rate loaded yet – open once while online';
     return;
   }
   const v = parse($('amount').value);
   $('result').textContent = Number.isFinite(v) ? fmt(convert(v), to()) : '–';
   const [y, m, d] = rate.asOf.split('-');
-  const src = rate.source === 'ecb' ? 'EZB (Näherung, Visa nicht verfügbar)' : 'Visa';
+  const src = rate.source === 'ecb' ? 'ECB (approximation, Visa unavailable)' : 'Visa';
   const sym = SYM[home];
   $('rateline').textContent =
-    `1 ZAR = ${fmtRate(perZar(), 4)} ${sym} · 1 ${sym} = ${fmtRate(1 / perZar(), 2)} ZAR · ${src}, Stand ${d}.${m}.${y}`;
+    `1 ZAR = ${fmtRate(perZar(), 4)} ${sym} · 1 ${sym} = ${fmtRate(1 / perZar(), 2)} ZAR · ${src}, as of ${d}/${m}/${y}`;
   const warn = [];
-  if (Date.now() - new Date(rate.asOf + 'T00:00:00Z') > 3 * 86400000) warn.push('Kurs ist veraltet');
-  if (offline) warn.push('Offline – letzter gespeicherter Kurs');
+  if (Date.now() - new Date(rate.asOf + 'T00:00:00Z') > 3 * 86400000) warn.push('Rate is outdated');
+  if (offline) warn.push('Offline – last saved rate');
   $('warn').textContent = warn.join(' · ');
 }
 
@@ -189,7 +191,7 @@ function swapDirection() {
   const next = perZar() && Number.isFinite(v) ? convert(v) : NaN;
   zarToEur = !zarToEur;
   store.set('dir', zarToEur ? 'zar2eur' : 'eur2zar');
-  $('amount').value = Number.isFinite(next) ? (Math.round(next * 100) / 100).toString().replace('.', ',') : '';
+  $('amount').value = Number.isFinite(next) ? (Math.round(next * 100) / 100).toString() : '';
   render();
 }
 $('swap').addEventListener('click', swapDirection);
@@ -222,10 +224,10 @@ let installPrompt = null;
 const ua = navigator.userAgent;
 const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 $('inst-text').textContent = ios
-  ? 'App installieren: Teilen-Symbol → „Zum Home-Bildschirm“'
+  ? 'Install app: Share icon → “Add to Home Screen”'
   : /Android/.test(ua)
-    ? 'App installieren: Menü ⋮ → „App installieren“'
-    : 'App installieren: Symbol in der Adressleiste oder Menü → „Seite als App installieren“';
+    ? 'Install app: menu ⋮ → “Install app”'
+    : 'Install app: icon in the address bar or menu → “Install page as app”';
 function syncInstall() {
   $('install').hidden = $('install').hidden || installed;
   $('inst-top').hidden = installed || !$('install').hidden;

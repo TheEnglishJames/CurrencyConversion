@@ -1,7 +1,7 @@
 {
-  "name": "Rand-Rechner",
-  "short_name": "Rand-Rechner",
-  "lang": "de",
+  "name": "Rand Calculator",
+  "short_name": "Rand Calculator",
+  "lang": "en",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
