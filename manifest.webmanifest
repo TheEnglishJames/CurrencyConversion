@@ -1,6 +1,6 @@
 {
-  "name": "Rand Calculator",
-  "short_name": "Rand Calculator",
+  "name": "Rand Rate",
+  "short_name": "Rand Rate",
   "lang": "en",
   "start_url": "./",
   "scope": "./",
